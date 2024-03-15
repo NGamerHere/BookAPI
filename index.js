@@ -1,6 +1,12 @@
 const express = require('express');
 const bodyParser = require('body-parser');
 const cors = require('cors');
+const mongoose = require('mongoose');
+
+// Connect to MongoDB
+mongoose.connect('mongodb://127.0.0.1:27017/test', { useNewUrlParser: true, useUnifiedTopology: true })
+    .then(() => console.log("Connected to MongoDB"))
+    .catch(error => console.error("MongoDB connection error:", error));
 
 const app = express();
 
@@ -8,39 +14,66 @@ app.use(bodyParser.urlencoded({ extended: true }));
 app.use(cors());
 app.use(bodyParser.json());
 
-// Mock user data (replace this with your database logic)
-const users = [
-    { id: 1, email: 'admin@gmail.com', password: '1', name: 'admin' },
-    { id: 2, email: 'user2@gmail.com', password: 'password2', name: 'user2' },
-    { id: 3, email: 'datta@gmail.com', password: 'datta', name: 'datta' },
-    {id: 4, email: 'datta', password: 'datta', name: 'datta'},
-    // Add more users here
-];
+// Define User schema
+const userSchema = new mongoose.Schema({
+    name: String,
+    email: String,
+    password: String
+});
 
-app.get('/login', (req, res) => {
-    const email=req.query.email;
-    const password=req.query.password;
-    const user=users.find(u=>u.email===email);
-    if(user){
-        if (user.password === password) {
-            res.status(200).json(user);
+// Define User model
+const User = mongoose.model('User', userSchema);
+
+// Login endpoint
+app.get('/login', async (req, res) => {
+    const email = req.query.email;
+    const password = req.query.password;
+    try {
+        const user = await User.findOne({ email: email });
+        if (user) {
+            if (user.password === password) {
+                res.status(200).json(user);
+            } else {
+                res.status(400).json({ message: 'Invalid password' });
+            }
         } else {
-            res.status(400).json({ message: 'Invalid password' });
+            res.status(400).json({ message: 'Account not found' });
         }
-    }else {
-        res.status(400).json({ message: 'account not found' });
+    } catch (error) {
+        console.error("Error in login:", error);
+        res.status(500).json({ message: 'Internal server error' });
     }
 });
 
-app.get('/users', (req, res) => {
-  const id=req.query.id;
-  const ds = users.find(u => u.id == id);
-    if (ds) {
-        res.json(ds);
-    } else {
-        res.status(400).json({ message: 'user was not found' });
+// Signup endpoint
+app.post('/signup', async (req, res) => {
+    const { name, email, password } = req.body;
+    try {
+        const user = new User({ name, email, password });
+        await user.save();
+        console.log("User saved:", user);
+        res.status(200).json({ message: 'Account created' });
+    } catch (error) {
+        console.error("Error in signup:", error);
+        res.status(500).json({ message: 'Internal server error' });
     }
-})
+});
+
+// Get user by ID endpoint
+app.get('/users', async (req, res) => {
+    const id = req.query.id;
+    try {
+        const user = await User.findById(id);
+        if (user) {
+            res.json(user);
+        } else {
+            res.status(400).json({ message: 'User not found' });
+        }
+    } catch (error) {
+        console.error("Error in fetching user:", error);
+        res.status(500).json({ message: 'Internal server error' });
+    }
+});
 
 const PORT = 5000;
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
