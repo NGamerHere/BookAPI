@@ -19,7 +19,10 @@ const userSchema = new mongoose.Schema({
     name: String,
     email: String,
     password: String,
-    BD:[]
+    BD:[{
+        name:String,
+        author:String,
+    }]
 });
 
 // Define User model
@@ -76,12 +79,41 @@ app.get('/users', async (req, res) => {
     }
 });
 
-app.post('/BookData',(req, res)=>{
-    const DS=req.body;
-    console.log(DS);
-    console.log("Data Received");
-    res.send("Data Received");
+app.get('/BookData', async (req, res) => {
+  const id=req.body.id;
+  try{
+      const user=await User.findById(id);
+      if (id){
+          res.json(user.BD).status(200);
+      }else {
+          res.send("id was not found in the data base");
+      }
+
+  }catch (e) {
+      console.log("error in getting the book data");
+      res.send("internal server error")
+  }
 })
+
+app.post('/BookData', async (req, res) => {
+    const id = req.body.id;
+    const bookData = req.body.BD;
+
+    try {
+        const user = await User.findById(id);
+        if (user) {
+            await user.BD.push(...bookData);
+            await user.save(); // Save the updated user document
+            console.log(user.BD);
+            res.send("Data Received");
+        } else {
+            res.status(400).json({ message: 'User not found' });
+        }
+    } catch (error) {
+        console.error("Error in saving book data:", error);
+        res.status(500).json({ message: 'Internal server error' });
+    }
+});
 
 const PORT = 5000;
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
