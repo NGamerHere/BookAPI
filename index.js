@@ -4,7 +4,7 @@ const cors = require('cors');
 const mongoose = require('mongoose');
 
 // Connect to MongoDB
-mongoose.connect('mongodb://127.0.0.1:27017/test', { useNewUrlParser: true, useUnifiedTopology: true })
+mongoose.connect('mongodb://127.0.0.1:27017/BookApp', { useNewUrlParser: true, useUnifiedTopology: true })
     .then(() => console.log("Connected to MongoDB"))
     .catch(error => console.error("MongoDB connection error:", error));
 
@@ -18,16 +18,17 @@ app.use(bodyParser.json());
 const userSchema = new mongoose.Schema({
     name: String,
     email: String,
-    password: String
+    password: String,
+    BD:[]
 });
 
 // Define User model
 const User = mongoose.model('User', userSchema);
 
 // Login endpoint
-app.get('/login', async (req, res) => {
-    const email = req.query.email;
-    const password = req.query.password;
+app.post('/login', async (req, res) => {
+    const email = req.body.email;
+    const password = req.body.password;
     try {
         const user = await User.findOne({ email: email });
         if (user) {
@@ -61,7 +62,7 @@ app.post('/signup', async (req, res) => {
 
 // Get user by ID endpoint
 app.get('/users', async (req, res) => {
-    const id = req.query.id;
+    const id = req.body.id;
     try {
         const user = await User.findById(id);
         if (user) {
@@ -74,6 +75,13 @@ app.get('/users', async (req, res) => {
         res.status(500).json({ message: 'Internal server error' });
     }
 });
+
+app.post('/BookData',(req, res)=>{
+    const DS=req.body;
+    console.log(DS);
+    console.log("Data Received");
+    res.send("Data Received");
+})
 
 const PORT = 5000;
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
